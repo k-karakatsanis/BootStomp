@@ -2,7 +2,6 @@ import operator
 from idaapi import *
 from idautils import *
 
-
 # Globals: risky but friendly peeps to speed up coding
 # A CFG constructed by angr CFGFast analysis
 cfg = ''
@@ -47,16 +46,16 @@ def get_function_args_count(func_addr):
 
 
 def get_basic_block(instr_addr):
-    function = get_func(instr_addr)
-    if not function:
-      return None
+    my_function = get_func(instr_addr)
+    if not my_function:
+        return None
 
-    flow_chart = FlowChart(function)
+    flow_chart = FlowChart(my_function)
 
     for block in flow_chart:
-      if block.startEA <= instr_addr:
-        if block.endEA > instr_addr:
-          return block.startEA
+        if block.start_ea <= instr_addr:
+            if block.end_ea > instr_addr:
+                return block.start_ea
 
 
 # Populate the data structures by filling up information on methods found in the blob
@@ -75,13 +74,16 @@ def populate_method_info_angr():
 
     # Find xrefs in IDA: [hex(x.frm) for x in XrefsTo(<address>, 0)]
     for function_addr in function_addrs:
-        function = cfg.functions.function(function_addr)    # Get the method instance
-        first_node_of_function = cfg.get_node(function_addr)    # Get the node containing the function entry point
-        calling_nodes = cfg.get_predecessors(first_node_of_function)    # Get the nodes containing a call to the function (entry point)
+        my_function = cfg.functions.function(
+            function_addr)  # Get the method instance
+        first_node_of_function = cfg.get_node(
+            function_addr)  # Get the node containing the function entry point
+        calling_nodes = cfg.get_predecessors(
+            first_node_of_function)  # Get the nodes containing a call to the function (entry point)
 
         # Extract relevant information on the method identified
         function_info = FuncInfo()
-        function_info.name = function.name
+        function_info.name = my_function.name
         function_info.address = function_addr
         function_info.xrefs = len(calling_nodes)
 
@@ -121,4 +123,4 @@ def populate_method_info_ida():
 # in the list :-( To make the situation worse, a bunch of libc functions precede
 # mmc_read(). Can we eliminate these by computing symbolic summaries?
 def heuristic_sort_by_xrefs():
-    functions_info.sort(key = operator.attrgetter('xrefs'), reverse = True)
+    functions_info.sort(key=operator.attrgetter('xrefs'), reverse=True)

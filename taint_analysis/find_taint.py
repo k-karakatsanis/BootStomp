@@ -1,10 +1,10 @@
-
 # Is it being run inside IDA or angr?
 is_ida = True
 try:
     from idaapi import *
     from idautils import *
     import find_taint_sources
+
     idaapi.require("find_taint_sinks")
     import helper
 except ImportError:
@@ -14,7 +14,6 @@ except ImportError:
     import archinfo
     import ipdb
     import helper
-
 
 # The 'main' guy
 if is_ida:
@@ -36,15 +35,17 @@ if is_ida:
         taint_file.write(taint_sinks_memwrite)
         taint_file.write(taint_sinks_memcpy)
 
-    print "\n------------------------\nTaint sources and sinks\n------------------------"
-    print taint_sources
-    print taint_sinks_memwrite
-    print taint_sinks_memcpy
+    print(
+        "\n------------------------\nTaint sources and sinks\n------------------------")
+    print(taint_sources)
+    print(taint_sinks_memwrite)
+    print(taint_sinks_memcpy)
 
 else:
     if __name__ == "__main__":
         filename = sys.argv[1]
         opts = {'main_opts': {'custom_arch': archinfo.arch_arm.ArchARM}}
         project = angr.Project(filename, load_options=opts)
-        cfg = project.analyses.CFGFast(resolve_indirect_jumps = True, show_progressbar = True)
+        cfg = project.analyses.CFGFast(resolve_indirect_jumps=True,
+                                       show_progressbar=True)
         helper.populate_method_info_angr()

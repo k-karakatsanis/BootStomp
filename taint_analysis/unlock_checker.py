@@ -122,12 +122,12 @@ class UnlockChecker:
                     index = ins.find('push')
                     regs = ins[index + 5:]
                     params += regs.split('{')[1].split('}')[0].split(', ')
-                elif ('stp' in ins and 'sp' in ins):
+                elif 'stp' in ins and 'sp' in ins:
                     index_stp = ins.find('stp')
                     index_sp = ins.find('sp')
                     regs = ins[index_stp + 4:index_sp - 1]
                     params += regs.split(', ')
-                elif ('str' in ins and 'sp' in ins):
+                elif 'str' in ins and 'sp' in ins:
                     index_stp = ins.find('str')
                     index_sp = ins.find('sp')
                     regs = ins[index_stp + 4:index_sp - 1]
@@ -282,9 +282,10 @@ class UnlockChecker:
         self._core.log(str(datetime.datetime.now().time()) + ": Terminated\n")
         self._core.stop_logging()
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print "Usage: " + sys.argv[0] + " config.file"
+        print("Usage: " + sys.argv[0] + " config.file")
         sys.exit(0)
 
     config_file = sys.argv[1]

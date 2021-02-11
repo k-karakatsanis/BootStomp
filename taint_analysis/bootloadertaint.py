@@ -24,7 +24,9 @@ class BootloaderTaint:
     Performs a pre-analysis to setup the taint analysis engine and launch the taint analysis itself.
 
     """
-    def __init__(self, filename, arch, taint_info_file, enable_thumb=False, start_with_thumb=False, exit_on_decode_error=True):
+
+    def __init__(self, filename, arch, taint_info_file, enable_thumb=False,
+                 start_with_thumb=False, exit_on_decode_error=True):
         """
         Initialization function.
 
@@ -39,9 +41,11 @@ class BootloaderTaint:
         self._filename = filename
         self._arch = arch
         try:
-            self._p = angr.Project(filename, load_options={'main_opts': {'custom_arch': arch}})
+            self._p = angr.Project(filename, load_options={
+                'main_opts': {'custom_arch': arch}})
         except:
-            self._p = angr.Project(filename, load_options={'main_opts': {'custom_arch': arch, 'backend': 'blob'}})
+            self._p = angr.Project(filename, load_options={
+                'main_opts': {'custom_arch': arch, 'backend': 'blob'}})
         self._cfg = None
         self._core = None
         self._taint_buf = "taint_buf"
@@ -108,13 +112,16 @@ class BootloaderTaint:
                         if not param:
                             continue
 
-                        param = arch_mapping[self._p.arch.name] + param if 'RETURN' != param else param
+                        param = arch_mapping[
+                                    self._p.arch.name] + param if 'RETURN' != param else param
                         if func_addr not in callers_poi:
                             callers_poi[func_addr] = {}
                             callers_poi[func_addr]['sinks'] = set()
-                            callers_poi[func_addr]['sources'] = { (source_addr, ins_call, param)  }
+                            callers_poi[func_addr]['sources'] = {
+                            (source_addr, ins_call, param)}
                         else:
-                            callers_poi[func_addr]['sources'].add( (source_addr, ins_call, param) )
+                            callers_poi[func_addr]['sources'].add(
+                                (source_addr, ins_call, param))
 
                 elif phase == 'sinks':
                     line = line.strip()
@@ -130,7 +137,7 @@ class BootloaderTaint:
                         param = arch_mapping[self._p.arch.name] + str(id_param)
 
                         for k in callers_poi:
-                            callers_poi[k]['sinks'].add( (func_addr, param) )
+                            callers_poi[k]['sinks'].add((func_addr, param))
 
         return callers_poi, summarized_f
 
@@ -152,11 +159,13 @@ class BootloaderTaint:
 
             # thumb mode
             if bl is None or bl.vex.jumpkind == 'Ijk_NoDecode':
-                bl = self._p.factory.block(int(call_addr, 16) - base_addr, thumb=True)
+                bl = self._p.factory.block(int(call_addr, 16) - base_addr,
+                                           thumb=True)
 
             if bl.vex.jumpkind != 'Ijk_Call':
                 new_addr = int(call_addr, 16) - 4
-                assert self._p.factory.block(new_addr - base_addr).vex.jumpkind == 'Ijk_Call', \
+                assert self._p.factory.block(
+                    new_addr - base_addr).vex.jumpkind == 'Ijk_Call', \
                     'workaround for fucking ida did not work'
                 splits = line.split(', ')
                 splits[4] = hex(new_addr)
@@ -214,13 +223,16 @@ class BootloaderTaint:
 
                         curr_caller_addr = line2.split(', ')[3]
                         curr_source_addr = line2.split(', ')[1]
-                        curr_params = line2.split('[')[-1].split(']')[0].split(', ')
+                        curr_params = line2.split('[')[-1].split(']')[0].split(
+                            ', ')
                         if curr_caller_addr == caller_addr and curr_source_addr == source_addr \
                                 and curr_params != params:
-                            params = list(set(curr_params).intersection(set(params)))
+                            params = list(
+                                set(curr_params).intersection(set(params)))
 
                     # set the new arguments list
-                    line = line.split('[')[0] + '[' + ', '.join(params) + ']\r\n'
+                    line = line.split('[')[0] + '[' + ', '.join(
+                        params) + ']\r\n'
 
                 if 'sources:' in line:
                     start_process = True
@@ -248,14 +260,15 @@ class BootloaderTaint:
                 tmp[s[1]] = []
             tmp[s[1]].append(s)
 
-        cartesian_prod = product(*tmp.itervalues())
+        cartesian_prod = product(*tmp.values())
 
         # Heuristic: filtering out the configuration which for the same source of taint
         # would taint different parameters.
         filtered = []
         for elems in cartesian_prod:
             for elem in elems:
-                if any([e for e in elems if elem[0] == e[0] and elem[2] != e[2]]):
+                if any([e for e in elems if
+                        elem[0] == e[0] and elem[2] != e[2]]):
                     break
             else:
                 filtered.append(elems)
@@ -274,22 +287,29 @@ class BootloaderTaint:
         # initialize the core taint module
         name = self._p.filename.split('/')[-1]
         log_path = "/tmp/BootloaderTaint_" + name + "_.out"
-        self._core = _coretaint._CoreTaint(self._p, interfunction_level=1, log_path=log_path, try_thumb=self._enable_thumb, exit_on_decode_error=self._exit_on_decode_error)
+        self._core = _coretaint._CoreTaint(self._p, interfunction_level=1,
+                                           log_path=log_path,
+                                           try_thumb=self._enable_thumb,
+                                           exit_on_decode_error=self._exit_on_decode_error)
         self._core.start_logging()
 
-        for caller, poi in callers_and_poi.iteritems():
+        for caller, poi in callers_and_poi.items():
             sinks_info = list(poi['sinks'])
             sources_info = list(poi['sources'])
             l.info("Caller %s" % hex(caller))
-            self._core.log("\n------------- Caller %s -------------\n" %(hex(caller)))
+            self._core.log(
+                "\n------------- Caller %s -------------\n" % (hex(caller)))
 
             callsite_and_param = [(x[1], x[2]) for x in sources_info]
             l.info('Configuration: %s\n' % (str(callsite_and_param)))
-            self._core.log(str(datetime.datetime.now().time()) + ': Configuration: %s\n' % (str([(hex(x[0]), x[1]) for x in callsite_and_param])))
+            self._core.log(str(
+                datetime.datetime.now().time()) + ': Configuration: %s\n' % (
+                               str([(hex(x[0]), x[1]) for x in
+                                    callsite_and_param])))
 
             s = self._p.factory.blank_state(
                 remove_options={
-                                simuvex.o.LAZY_SOLVES
+                    simuvex.o.LAZY_SOLVES
                 }
             )
 
@@ -302,16 +322,20 @@ class BootloaderTaint:
 
             # scan for tainted paths
             self._core.set_alarm(self._timeout)
-            self._core.run(s, sinks_info, callsite_and_param, summarized_f, force_thumb=self._start_with_thumb)
-            self._core.log(str(datetime.datetime.now().time()) + ': End Configuration\n')
+            self._core.run(s, sinks_info, callsite_and_param, summarized_f,
+                           force_thumb=self._start_with_thumb)
+            self._core.log(
+                str(datetime.datetime.now().time()) + ': End Configuration\n')
 
-            self._core.log("\n------------- end %s -------------\n" % (hex(caller)))
+            self._core.log(
+                "\n------------- end %s -------------\n" % (hex(caller)))
 
         self._core.stop_logging()
-        
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print "Usage: " + sys.argv[0] + " config.file"
+        print("Usage: " + sys.argv[0] + " config.file")
         sys.exit(0)
 
     config_file = sys.argv[1]
@@ -323,9 +347,11 @@ if __name__ == "__main__":
     path = str(config['info_path'])
     enable_thumb = True if config['enable_thumb'] == 'True' else False
     start_with_thumb = True if config['start_with_thumb'] == 'True' else False
-    exit_on_decode_error = True if config['exit_on_dec_error'] == 'True' else False
-    arch = archinfo.arch_aarch64.ArchAArch64 if config['arch'] == "64" else archinfo.arch_arm.ArchARM
-    bt = BootloaderTaint(filename, arch, path, enable_thumb=enable_thumb, start_with_thumb=start_with_thumb,
+    exit_on_decode_error = True if config[
+                                       'exit_on_dec_error'] == 'True' else False
+    arch = archinfo.arch_aarch64.ArchAArch64 if config[
+                                                    'arch'] == "64" else archinfo.arch_arm.ArchARM
+    bt = BootloaderTaint(filename, arch, path, enable_thumb=enable_thumb,
+                         start_with_thumb=start_with_thumb,
                          exit_on_decode_error=exit_on_decode_error)
     bt.run()
-

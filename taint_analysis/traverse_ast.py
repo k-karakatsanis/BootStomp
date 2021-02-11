@@ -7,7 +7,7 @@ import helper
 
 class AstVisitor(ctree_visitor_t):
 
-    def __init__(self, log_message_xref_addr, ast_pass = 1):
+    def __init__(self, log_message_xref_addr, ast_pass=1):
         ctree_visitor_t.__init__(self, CV_PARENTS)
         # Holds tuples of the form <variable : method> where the
         # return value of the 'method' is assigned to the 'variable'
@@ -21,20 +21,18 @@ class AstVisitor(ctree_visitor_t):
         self.fptr_arg_cnt_map = {}
         return
 
-
     def list_parents(self):
         for parent in self.parents:
             if parent is not None:
-                print "      |--- 0x%X [%d]" % (parent.ea, parent.op)
-
+                print("      |--- 0x%X [%d]" % (parent.ea, parent.op))
 
     def show_use_def_map(self):
-        print "\n----------------------\nUse-def map\n----------------------"
-        for variable, method_info in self.use_def_map.iteritems():
+        print("\n----------------------\nUse-def map\n----------------------")
+        for variable, method_info in self.use_def_map.items():
             method_name, method_address, expr_addr = method_info
-            print "%3s = %s[0x%X] at 0x%X" % ("v" + str(variable), method_name, method_address, expr_addr)
-        print
-
+            print("%3s = %s[0x%X] at 0x%X" % (
+                "v" + str(variable), method_name, method_address, expr_addr))
+        print()
 
     def cast_node_type(self, node):
         if node.is_expr():
@@ -44,7 +42,6 @@ class AstVisitor(ctree_visitor_t):
 
         return node
 
-
     def get_parent(self, index):
         length = self.parents.size()
         parent = self.parents[length + index]
@@ -52,11 +49,10 @@ class AstVisitor(ctree_visitor_t):
         if parent is not None:
             parent = self.cast_node_type(parent)
         else:
-            print "[ERROR]: parent is None"
+            print("[ERROR]: parent is None")
             exit(1)
 
         return parent
-
 
     def analyze_function_ptr(self, call_expr):
         if call_expr.op == cot_var:
@@ -66,7 +62,6 @@ class AstVisitor(ctree_visitor_t):
         if call_expr.y is not None:
             return self.analyze_function_ptr(call_expr.y)
         return False
-
 
     def track_variable_assignment(self, expr_assignment):
         expr_lhs = expr_assignment.x
@@ -99,7 +94,8 @@ class AstVisitor(ctree_visitor_t):
                 var_rhs_idx = expr_rhs.v.idx
                 method_info = self.use_def_map.get(var_rhs_idx)
                 if method_info is None:
-                    print "[INFO]: No def found for variable v%d at 0x%X" % (var_rhs_idx, expr_addr)
+                    print("[INFO]: No def found for variable v%d at 0x%X" % (
+                        var_rhs_idx, expr_addr))
                     return
                 else:
                     method_name, method_address, expr_addr = method_info
@@ -107,7 +103,8 @@ class AstVisitor(ctree_visitor_t):
             elif expr_rhs.op == cot_obj:
                 var_to_str = self.var_str_map.get(var_lhs_idx)
                 if var_to_str is None:
-                    self.var_str_map[var_lhs_idx] = [(expr_rhs.obj_ea, expr_addr)]
+                    self.var_str_map[var_lhs_idx] = [
+                        (expr_rhs.obj_ea, expr_addr)]
                 else:
                     var_to_str.append((expr_rhs.obj_ea, expr_addr))
                 return
@@ -115,8 +112,8 @@ class AstVisitor(ctree_visitor_t):
             else:
                 return
 
-            self.use_def_map[var_lhs_idx] = (method_name, method_address, expr_addr)
-
+            self.use_def_map[var_lhs_idx] = (
+                method_name, method_address, expr_addr)
 
     def copy_call_trace(self):
         self.node_chain = []
@@ -124,12 +121,10 @@ class AstVisitor(ctree_visitor_t):
             if parent is not None:
                 self.node_chain.append(self.cast_node_type(parent))
 
-
     def show_call_trace(self):
         for node in self.node_chain:
-            print "      |--- 0x%X [%d]" % (node.ea, node.op)
-        print
-
+            print("      |--- 0x%X [%d]" % (node.ea, node.op))
+        print()
 
     def find_node(self, root, node_type):
         if root.op == node_type:
@@ -141,7 +136,6 @@ class AstVisitor(ctree_visitor_t):
         else:
             return None
 
-
     def construct_node_chain(self, function_ctree_body, child_node):
         self.node_chain = []
         while child_node.ea != function_ctree_body.ea:
@@ -151,7 +145,6 @@ class AstVisitor(ctree_visitor_t):
                 child_node = parent_node
 
         self.node_chain = list(reversed(self.node_chain))
-
 
     def visit_expr(self, expr):
         if self.found:
@@ -179,19 +172,22 @@ class AstVisitor(ctree_visitor_t):
                         if var is not None:
                             function_args.append(var.v.idx)
                         if arg.ea == self.log_message_xref_addr:
-                            print "\n---------------------------------------\nFound log message string as a method argument\n---------------------------------------"
-                            print "[*] %s [0x%X]" % (method_name, expr.ea)
+                            print(
+                                "\n---------------------------------------\nFound log message string as a method argument\n---------------------------------------")
+                            print("[*] %s [0x%X]" % (method_name, expr.ea))
                             self.found = True
                             self.list_parents()
                             self.copy_call_trace()
                             break
 
-                    self.function_args_map[(method_name, expr.ea)] = (function_args, expr)
+                    self.function_args_map[(method_name, expr.ea)] = (
+                        function_args, expr)
 
         if self.ast_pass == 2:
             if expr.ea == self.node_addr and expr.op == self.node_type:
-                print "\n---------------------------------------\nFound log message string as a variable assignment\n---------------------------------------"
-                print "[*] v%d [0x%X]" % (expr.x.v.idx, expr.ea)
+                print(
+                    "\n---------------------------------------\nFound log message string as a variable assignment\n---------------------------------------")
+                print("[*] v%d [0x%X]" % (expr.x.v.idx, expr.ea))
                 self.found = True
                 self.list_parents()
                 self.copy_call_trace()
@@ -202,14 +198,14 @@ class AstVisitor(ctree_visitor_t):
 
         if self.ast_pass == 3:
             if expr.ea == self.node_addr and expr.op == self.node_type:
-                print "[INFO]: Found node at 0x%X of type %d" % (self.node_addr, self.node_type)
+                print("[INFO]: Found node at 0x%X of type %d" % (
+                    self.node_addr, self.node_type))
                 self.found = True
                 self.required_node = expr
 
         return 0
 
-
-    def walk_ast(self, ctree, ast_pass = 1, node_addr = None, node_type = None):
+    def walk_ast(self, ctree, ast_pass=1, node_addr=None, node_type=None):
         self.found = False
         self.ast_pass = ast_pass
         self.node_addr = node_addr

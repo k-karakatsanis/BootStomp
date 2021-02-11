@@ -19,7 +19,8 @@ arch_mapping = {
 
 class CoverageTest:
 
-    def __init__(self, filename, arch, taint_info_file, function_info_file, thumb=False):
+    def __init__(self, filename, arch, taint_info_file, function_info_file,
+                 thumb=False):
         """
         Initialization function.
 
@@ -32,7 +33,8 @@ class CoverageTest:
 
         self._filename = filename
         self._arch = arch
-        self._p = angr.Project(filename, load_options={'main_opts': {'custom_arch': arch}})
+        self._p = angr.Project(filename, load_options={
+            'main_opts': {'custom_arch': arch}})
         self._cfg = None
         self._core = None
         self._taint_buf = "taint_buf"
@@ -102,13 +104,16 @@ class CoverageTest:
                         if not param:
                             continue
 
-                        param = arch_mapping[self._p.arch.name] + param if 'RETURN' != param else param
+                        param = arch_mapping[
+                                    self._p.arch.name] + param if 'RETURN' != param else param
                         if func_addr not in callers_poi:
                             callers_poi[func_addr] = {}
                             callers_poi[func_addr]['sinks'] = set()
-                            callers_poi[func_addr]['sources'] = {(source_addr, ins_call, param)}
+                            callers_poi[func_addr]['sources'] = {
+                            (source_addr, ins_call, param)}
                         else:
-                            callers_poi[func_addr]['sources'].add((source_addr, ins_call, param))
+                            callers_poi[func_addr]['sources'].add(
+                                (source_addr, ins_call, param))
 
                 elif phase == 'sinks':
                     line = line.strip()
@@ -146,11 +151,13 @@ class CoverageTest:
 
             # thumb mode
             if bl is None or bl.vex.jumpkind == 'Ijk_NoDecode':
-                bl = self._p.factory.block(int(call_addr, 16) - base_addr, thumb=True)
+                bl = self._p.factory.block(int(call_addr, 16) - base_addr,
+                                           thumb=True)
 
             if bl.vex.jumpkind != 'Ijk_Call':
                 new_addr = int(call_addr, 16) - 4
-                assert self._p.factory.block(new_addr - base_addr).vex.jumpkind == 'Ijk_Call', \
+                assert self._p.factory.block(
+                    new_addr - base_addr).vex.jumpkind == 'Ijk_Call', \
                     'workaround for fucking ida did not work'
                 splits = line.split(', ')
                 splits[4] = hex(new_addr)
@@ -208,13 +215,16 @@ class CoverageTest:
 
                         curr_caller_addr = line2.split(', ')[3]
                         curr_source_addr = line2.split(', ')[1]
-                        curr_params = line2.split('[')[-1].split(']')[0].split(', ')
+                        curr_params = line2.split('[')[-1].split(']')[0].split(
+                            ', ')
                         if curr_caller_addr == caller_addr and curr_source_addr == source_addr \
                                 and curr_params != params:
-                            params = list(set(curr_params).intersection(set(params)))
+                            params = list(
+                                set(curr_params).intersection(set(params)))
 
                     # set the new arguments list
-                    line = line.split('[')[0] + '[' + ', '.join(params) + ']\r\n'
+                    line = line.split('[')[0] + '[' + ', '.join(
+                        params) + ']\r\n'
 
                 if 'sources:' in line:
                     start_process = True
@@ -242,14 +252,15 @@ class CoverageTest:
                 tmp[s[1]] = []
             tmp[s[1]].append(s)
 
-        cartesian_prod = product(*tmp.itervalues())
+        cartesian_prod = product(*tmp.values())
 
         # Heuristic: filtering out the configuration which for the same source of taint
         # would taint different parameters.
         filtered = []
         for elems in cartesian_prod:
             for elem in elems:
-                if any([e for e in elems if elem[0] == e[0] and elem[2] != e[2]]):
+                if any([e for e in elems if
+                        elem[0] == e[0] and elem[2] != e[2]]):
                     break
             else:
                 filtered.append(elems)
@@ -267,13 +278,17 @@ class CoverageTest:
 
                 if start:
                     info = line.strip(' ').split(',')
-                    self._info_functions[int(info[1], 16)] = {'size': int(info[2]), 'if': int(info[3]), 'loops': int(info[4])}
+                    self._info_functions[int(info[1], 16)] = {
+                        'size': int(info[2]), 'if': int(info[3]),
+                        'loops': int(info[4])}
 
-    def coverage(self, current_path, guards_info, sinks_info=(), sources_info=()):
+    def coverage(self, current_path, guards_info, sinks_info=(),
+                 sources_info=()):
         try:
-            ret = self._core._check_if_sink_or_source(current_path, guards_info, sinks_info, sources_info)
+            ret = self._core._check_if_sink_or_source(current_path, guards_info,
+                                                      sinks_info, sources_info)
         except Exception as e:
-            self._errored_out= True
+            self._errored_out = True
             raise e
 
         # save stats
@@ -310,16 +325,19 @@ class CoverageTest:
         # initialize the core taint module
         name = self._p.filename.split('/')[-1]
         log_path = "/tmp/CoverageTest_" + name + "_.out"
-        self._core = _coretaint._CoreTaint(self._p, interfunction_level=1, log_path=log_path, try_thumb=self._thumb, default_log=False)
+        self._core = _coretaint._CoreTaint(self._p, interfunction_level=1,
+                                           log_path=log_path,
+                                           try_thumb=self._thumb,
+                                           default_log=False)
         self._core.start_logging()
         self._core._N = 0
 
-
-        for caller, poi in callers_and_poi.iteritems():
+        for caller, poi in callers_and_poi.items():
             sinks_info = list(poi['sinks'])
             sources_info = list(poi['sources'])
             l.info("Caller %s" % hex(caller))
-            self._core.log("\n------------- Caller %s -------------\n" % (hex(caller)))
+            self._core.log(
+                "\n------------- Caller %s -------------\n" % (hex(caller)))
 
             for source_info_i in self._get_run_conf(sources_info):
                 self._blocks = set()
@@ -329,7 +347,8 @@ class CoverageTest:
 
                 callsite_and_param = [(x[1], x[2]) for x in source_info_i]
                 l.info('Configuration: %s\n' % (str(callsite_and_param)))
-                self._core.log('\nConfiguration: %s\n' % (str([(hex(x[0]), x[1]) for x in callsite_and_param])))
+                self._core.log('\nConfiguration: %s\n' % (
+                    str([(hex(x[0]), x[1]) for x in callsite_and_param])))
 
                 # prepare the under-contrainted-based initial state
                 s = self._p.factory.blank_state(
@@ -349,9 +368,11 @@ class CoverageTest:
 
                 # scan for tainted paths
                 self._core.set_alarm(self._timeout)
-                self._core.run(s, sinks_info, callsite_and_param, summarized_f, check_func=self.coverage)
+                self._core.run(s, sinks_info, callsite_and_param, summarized_f,
+                               check_func=self.coverage)
                 self._log_stats()
-            self._core.log("\n------------- end %s -------------\n" % (hex(caller)))
+            self._core.log(
+                "\n------------- end %s -------------\n" % (hex(caller)))
 
         self._core.stop_logging()
 
@@ -364,32 +385,41 @@ class CoverageTest:
         try:
             for f in self._functions_touched:
                 expected_block_bytes += self._info_functions[f]['size']
-                expected_paths += ( self._info_functions[f]['if'] + self._info_functions[f]['loops'])
+                expected_paths += (self._info_functions[f]['if'] +
+                                   self._info_functions[f]['loops'])
 
             self._core.log("\nExpected seen paths: %s\n" % str(expected_paths))
             self._core.log("Seen paths: %s\n" % str(self._paths))
             if expected_paths > 0:
-                self._core.log("Perc covered paths: %s\n" % str(self._paths / float(expected_paths) * 100))
-            self._core.log("Expected seen bytes: %s\n" % str(expected_block_bytes))
+                self._core.log("Perc covered paths: %s\n" % str(
+                    self._paths / float(expected_paths) * 100))
+            self._core.log(
+                "Expected seen bytes: %s\n" % str(expected_block_bytes))
             self._core.log("Seen bytes: %s\n" % str(total_blocks_bytes))
 
             if expected_block_bytes > 0:
-                self._core.log("Perc coverage: %s\n" % str(total_blocks_bytes/float(expected_block_bytes) * 100))
+                self._core.log("Perc coverage: %s\n" % str(
+                    total_blocks_bytes / float(expected_block_bytes) * 100))
 
             self._core.log("Timeout: %s\n" % str(timeout_triggered))
-            self._core.log("Probable error of decode: %s\n" % str(not timeout_triggered and not self._core._keep_run))
-            self._core.log("Probable error due to unconstraint call in path: %s\n" % str(self._errored_out))
+            self._core.log("Probable error of decode: %s\n" % str(
+                not timeout_triggered and not self._core._keep_run))
+            self._core.log(
+                "Probable error due to unconstraint call in path: %s\n" % str(
+                    self._errored_out))
 
         except Exception as e:
             l.exception("'Log stuff errored out:")
 
 
 if __name__ == "__main__":
-    #data = [['../huawei_p8/ale_l23/fastboot.img', '/tmp/info.taint.fastboot_real', '/tmp/info.functions.fastboot']]
-    #data = [['/media/badnack/Documents/Code/bootloader/analysis/nexus_9/hboot.img', '/tmp/info.taint.hboot', '/tmp/info.functions.hboot']]
-    data = [['/media/badnack/Documents/Code/bootloader/analysis/xperia_xa/lk_trim.img', '/tmp/info.taint.mediatek', '/tmp/info.functions.mediatek']]
-    #data = [['/media/badnack/Documents/Code/bootloader/analysis/Evaluation/LK/unpatched/lk_unpatched','/tmp/info.taint.lk_unpatched', '/tmp/info.functions.lk_unpatched']]
-    #data = [['/media/badnack/Documents/Code/bootloader/analysis/Evaluation/LK/latest/lk_latest', '/tmp/info.taint.lk', '/tmp/info.functions.lk']]
+    # data = [['../huawei_p8/ale_l23/fastboot.img', '/tmp/info.taint.fastboot_real', '/tmp/info.functions.fastboot']]
+    # data = [['/media/badnack/Documents/Code/bootloader/analysis/nexus_9/hboot.img', '/tmp/info.taint.hboot', '/tmp/info.functions.hboot']]
+    data = [[
+                '/media/badnack/Documents/Code/bootloader/analysis/xperia_xa/lk_trim.img',
+                '/tmp/info.taint.mediatek', '/tmp/info.functions.mediatek']]
+    # data = [['/media/badnack/Documents/Code/bootloader/analysis/Evaluation/LK/unpatched/lk_unpatched','/tmp/info.taint.lk_unpatched', '/tmp/info.functions.lk_unpatched']]
+    # data = [['/media/badnack/Documents/Code/bootloader/analysis/Evaluation/LK/latest/lk_latest', '/tmp/info.taint.lk', '/tmp/info.functions.lk']]
 
     for filename, path, info_functions_file in data:
         thumb = False
@@ -402,6 +432,6 @@ if __name__ == "__main__":
         else:
             arch = archinfo.arch_aarch64.ArchAArch64
 
-        bt = CoverageTest(filename, arch, path, info_functions_file, thumb=thumb)
+        bt = CoverageTest(filename, arch, path, info_functions_file,
+                          thumb=thumb)
         bt.run()
-

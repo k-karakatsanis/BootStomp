@@ -10,6 +10,7 @@ import os
 l = logging.getLogger("_CoreTaint")
 l.setLevel("DEBUG")
 
+
 class MyFileHandler(object):
 
     def __init__(self, filename, handlerFactory, **kw):
@@ -19,7 +20,7 @@ class MyFileHandler(object):
     def __getattr__(self, n):
         if hasattr(self._handler, n):
             return getattr(self._handler, n)
-        raise AttributeError, n
+        raise AttributeError(n)
 
 
 class TimeOutException(Exception):
@@ -35,7 +36,8 @@ class _CoreTaint:
 
     def __init__(self, p, interfunction_level=0, log_path='/tmp/coretaint.out',
                  smart_call=True, follow_unsat=False, try_thumb=False,
-                 default_log=True, exit_on_decode_error=True, concretization_strategy=None, force_paths=False):
+                 default_log=True, exit_on_decode_error=True,
+                 concretization_strategy=None, force_paths=False):
         """
         Initialialization function
 
@@ -60,7 +62,7 @@ class _CoreTaint:
         self._p = p
         self._taint_buf = "taint_buf"
         self._taint_applied = False
-        self._taint_buf_size = 4096 # 1 page
+        self._taint_buf_size = 4096  # 1 page
         self._bogus_return = 0x41414141
         self._fully_taint_guard = []
 
@@ -87,10 +89,11 @@ class _CoreTaint:
         self._default_log = default_log
 
         self._exit_on_decode_error = exit_on_decode_error
-        self._concretization_strategy = self._default_concretization_strategy if concretization_strategy is None else\
+        self._concretization_strategy = self._default_concretization_strategy if concretization_strategy is None else \
             concretization_strategy
 
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fileh = MyFileHandler(log_path + '._log', logging.FileHandler)
         fileh.setFormatter(formatter)
         l.addHandler(fileh)
@@ -182,7 +185,8 @@ class _CoreTaint:
         """
 
         addr_expr = state.inspect.address_concretization_expr
-        state.inspect.address_concretization_result = [self._get_target_concretization(addr_expr, state)]
+        state.inspect.address_concretization_result = [
+            self._get_target_concretization(addr_expr, state)]
 
         # a tainted buffer's location is used as address
         if self._taint_buf in str(addr_expr):
@@ -192,10 +196,12 @@ class _CoreTaint:
             self._deref_instruction = state.ip.args[0]
 
             if state.inspect.address_concretization_action == 'load':
-                name = "cnt_pt_by(" + self._taint_buf + ' [' + str(self._deref[0]) + ', ' + str(self._deref[1]) + ']' + ")"
+                name = "cnt_pt_by(" + self._taint_buf + ' [' + str(
+                    self._deref[0]) + ', ' + str(self._deref[1]) + ']' + ")"
                 bits = state.inspect.mem_read_length
                 var = claripy.BVS(name, bits)
-                state.memory.store(state.inspect.address_concretization_result[0], var)
+                state.memory.store(
+                    state.inspect.address_concretization_result[0], var)
 
     def _check_taint(self, state, reg, history):
         """
@@ -217,15 +223,17 @@ class _CoreTaint:
             for a in ast_node.args:
                 if hasattr(a, 'args'):
                     a, b = _find_extract_bounds(a)
-                    if self._bounds[0] is None or (a is not None and a <= self._bounds[0]):
+                    if self._bounds[0] is None or (
+                            a is not None and a <= self._bounds[0]):
                         self._bounds[0] = a
-                    if self._bounds[1] is None or (b is not None and b >= self._bounds[1]):
+                    if self._bounds[1] is None or (
+                            b is not None and b >= self._bounds[1]):
                         self._bounds[1] = b
             return self._bounds[0], self._bounds[1]
 
         def _find_name(ast_node):
             if type(ast_node) == claripy.ast.bv.BV and \
-                            ast_node.op == 'BVS':
+                    ast_node.op == 'BVS':
                 return ast_node.args[0]
             elif hasattr(ast_node, 'args'):
                 for a in ast_node.args:
@@ -244,8 +252,10 @@ class _CoreTaint:
                     # scan the path's guards and collect those relative to
                     # the tainted portion of memory
 
-                    t_op = g.args[0] if self._taint_buf in str(g.args[0]) else g.args[1]
-                    sec_op = g.args[1] if self._taint_buf in str(g.args[0]) else g.args[0]
+                    t_op = g.args[0] if self._taint_buf in str(g.args[0]) else \
+                        g.args[1]
+                    sec_op = g.args[1] if self._taint_buf in str(g.args[0]) else \
+                        g.args[0]
 
                     if self._taint_buf not in str(sec_op):
                         name_op = _find_name(t_op)
@@ -261,7 +271,8 @@ class _CoreTaint:
                         lb_op, ub_op = _find_extract_bounds(t_op)
 
                         if lb_op is None:
-                            l.error("The whole buffer seem to be untainted, check me!")
+                            l.error(
+                                "The whole buffer seem to be untainted, check me!")
                             return False
 
                         if lb >= lb_op:
@@ -298,7 +309,7 @@ class _CoreTaint:
             except TimeOutException as t:
                 raise t
             except:
-                l.info("Unable to concretize %s" %hex(ast))
+                l.info("Unable to concretize %s" % hex(ast))
                 return False
 
             # the load might have set some flags, let's restore them
@@ -309,7 +320,8 @@ class _CoreTaint:
                 return _check_guards(cnt, history)
 
             return False
-        raise Exception("Architecture %s has no register %s" % (self._p.arch.name, reg))
+        raise Exception(
+            "Architecture %s has no register %s" % (self._p.arch.name, reg))
 
     def _save_sink_info(self, path, reg, sink_address):
         """
@@ -345,10 +357,14 @@ class _CoreTaint:
         f.write("Sink address: %s\n" % hex(sink_address))
 
         if is_addr:
-            f.write("\nReason: sink accepts %s which points to the location of memory %s.\n" % (str(reg), reg_cnt))
+            f.write(
+                "\nReason: sink accepts %s which points to the location of memory %s.\n" % (
+                    str(reg), reg_cnt))
             f.write("\nContent of %s: %s\n" % (str(reg_cnt), str(mem_cnt)))
         else:
-            f.write("\nReason: sink accepts parameter %s which is tainted.\n" % (str(reg)))
+            f.write(
+                "\nReason: sink accepts parameter %s which is tainted.\n" % (
+                    str(reg)))
             f.write("\nContent of %s: %s\n" % (str(reg), str(reg_cnt)))
 
         f.write("\n\nPath \n----------------\n")
@@ -363,7 +379,8 @@ class _CoreTaint:
                 f.write(fc[0] + ': ')
                 f.write(str(fc[1]) + '\n\n')
 
-        f.write("===================== End Info path =====================\n\n\n")
+        f.write(
+            "===================== End Info path =====================\n\n\n")
 
     def _save_deref_info(self, path, addr_expr):
         """
@@ -385,12 +402,15 @@ class _CoreTaint:
 
         f.write("===================== Start Info path =====================\n")
         f.write("Dereference address at: %s\n" % hex(code_addr))
-        f.write("\nReason: at location %s a tainted variable is dereferenced and used as address.\n" % hex(code_addr))
+        f.write(
+            "\nReason: at location %s a tainted variable is dereferenced and used as address.\n" % hex(
+                code_addr))
         f.write("\nContent of the tainted variable: %s\n" % str(addr_expr))
         f.write("\n\nTainted Path \n----------------\n")
         path = ' -> '.join([hex(a) for a in path.addr_trace])
         f.write(path + '\n\n')
-        f.write("===================== End Info path =====================\n\n\n")
+        f.write(
+            "===================== End Info path =====================\n\n\n")
 
     def _save_loop_info(self, path, addr, cond):
         """
@@ -412,12 +432,14 @@ class _CoreTaint:
 
         f.write("===================== Start Info path =====================\n")
         f.write("Dangerous loop condition at address %s\n" % hex(addr))
-        f.write("\nReason: a tainted variable is used in the guard of a loop condition\n")
+        f.write(
+            "\nReason: a tainted variable is used in the guard of a loop condition\n")
         f.write("\nCondition: %s\n" % (cond))
         f.write("\n\nTainted Path \n----------------\n")
         path = ' -> '.join([hex(a) for a in path.addr_trace])
         f.write(path + '\n\n')
-        f.write("===================== End Info path =====================\n\n\n")
+        f.write(
+            "===================== End Info path =====================\n\n\n")
 
     def _default_concretization_strategy(self, state, cnt):
         concs = state.se.any_n_int(cnt, 50)
@@ -478,7 +500,8 @@ class _CoreTaint:
         val = state_cp.se.any_int(var)
         return val
 
-    def _check_if_sink_or_source(self, current_path, guards_info, current_depth, sinks_info=(), sources_info=()):
+    def _check_if_sink_or_source(self, current_path, guards_info, current_depth,
+                                 sinks_info=(), sources_info=()):
         """
         Check if a tainted sink is present in the current block of a path
         :param current_path: current path
@@ -513,10 +536,12 @@ class _CoreTaint:
             bb = self._get_bb(current_path.addr)
 
             # the bb contains the call to the source
-            if any([x for x in bb.vex.statements if x.tag == 'Ist_IMark' and x.addr == source]):
+            if any([x for x in bb.vex.statements if
+                    x.tag == 'Ist_IMark' and x.addr == source]):
                 #  time to taint
                 if reg_source == 'RETURN':
-                    addr_to_taint = self._get_sym_val(name='reg_x0_ret_', inc=False)
+                    addr_to_taint = self._get_sym_val(name='reg_x0_ret_',
+                                                      inc=False)
                 else:
                     addr_to_taint = getattr(suc_state.regs, reg_source)
 
@@ -554,11 +579,13 @@ class _CoreTaint:
                 # self._keep_run = False
 
         # eventually if we are in a loop guarded by a tainted variable
-        if len(succ) > 1 and any([a for a in succ if a.addr in [t for t in current_path.addr_trace]]):
+        if len(succ) > 1 and any([a for a in succ if a.addr in [t for t in
+                                                                current_path.addr_trace]]):
             cond_guard = [g for g in succ[0].guards][-1]
             for node in cond_guard.recursive_leaf_asts:
                 if self._taint_buf in str(node):
-                    self._save_loop_info(current_path, current_path.addr, cond_guard)
+                    self._save_loop_info(current_path, current_path.addr,
+                                         cond_guard)
                     return True
 
         return False
@@ -579,7 +606,9 @@ class _CoreTaint:
     def _get_sym_val(self, name='x_', bits=None, inc=True):
         if bits is None:
             bits = self._p.arch.bits
-        var = claripy.BVS(name=(name + str(self._count_var) + '_' + str(self._p.arch.bits)), size=bits, explicit_name=True)
+        var = claripy.BVS(
+            name=(name + str(self._count_var) + '_' + str(self._p.arch.bits)),
+            size=bits, explicit_name=True)
         if inc:
             self._count_var += 1
         return var
@@ -635,10 +664,10 @@ class _CoreTaint:
 
         if current_depth <= 0:
             return False
-        
+
         if not self._smart_call:
             return True
-        
+
         if not self._taint_applied:
             return False
 
@@ -673,7 +702,8 @@ class _CoreTaint:
             # check if it is pointing to a tainted location
             tmp_s = suc_path.state.copy()
             try:
-                mem_cnt = tmp_s.memory.load(reg_cnt, 50)  # FIXME set this N to a meaningful value
+                mem_cnt = tmp_s.memory.load(reg_cnt,
+                                            50)  # FIXME set this N to a meaningful value
             except TimeOutException as t:
                 raise t
             except:
@@ -682,7 +712,8 @@ class _CoreTaint:
                 continue
 
             # we might have dereferenced wrongly a tainted variable during the tests before
-            if (self._taint_buf in str(reg_cnt) or self._taint_buf in str(mem_cnt)) and current_depth > 0:
+            if (self._taint_buf in str(reg_cnt) or self._taint_buf in str(
+                    mem_cnt)) and current_depth > 0:
                 self._restore_taint_flags()
                 return True
 
@@ -738,7 +769,8 @@ class _CoreTaint:
             return True
         return False
 
-    def _flat_explore(self, current_path, check_path_fun, guards_info, current_depth, **kwargs):
+    def _flat_explore(self, current_path, check_path_fun, guards_info,
+                      current_depth, **kwargs):
         """
         Find a tainted path between a source and a sink
         :param current_path: current path
@@ -753,7 +785,8 @@ class _CoreTaint:
             return
         l.info("Analyzing block %s", hex(current_path.addr))
 
-        if not self._check_sat_state(current_path, guards_info) and not self._timeout_triggered:
+        if not self._check_sat_state(current_path,
+                                     guards_info) and not self._timeout_triggered:
             l.error("State got messed up!")
             raise Exception("State became UNSAT")
 
@@ -766,10 +799,12 @@ class _CoreTaint:
         succ_sat = current_path.step()
 
         # try thumb
-        if succ_sat and succ_sat[0].errored and self._try_thumb and not self._force_paths:
+        if succ_sat and succ_sat[
+            0].errored and self._try_thumb and not self._force_paths:
             succ_sat = current_path.step(thumb=True)
 
-        if succ_sat and succ_sat[0].errored and self._try_thumb and not self._force_paths:
+        if succ_sat and succ_sat[
+            0].errored and self._try_thumb and not self._force_paths:
             if self._exit_on_decode_error:
                 self._keep_run = False
             return
@@ -793,7 +828,9 @@ class _CoreTaint:
                 unc_state = current_path.unconstrained_successor_states[0]
                 ret_addr = bl.instruction_addrs[-1] + 4
                 ret_func = current_path.state.regs.lr if self._p.arch.bits == 32 else current_path.state.regs.x30
-                succ_sat = [self._set_fake_ret_succ(current_path, unc_state, ret_addr, ret_func)]
+                succ_sat = [
+                    self._set_fake_ret_succ(current_path, unc_state, ret_addr,
+                                            ret_func)]
 
         # register sat and unsat information so that later we can drop the constraints
         for s in succ_sat:
@@ -812,20 +849,24 @@ class _CoreTaint:
             next_depth = current_depth
 
             # First, let's see if we can follow the calls
-            if next_path.jumpkind == 'Ijk_Call' and not self._vex_fucked_up(current_path, next_path):
-                if not self._follow_call(current_path, next_path, current_depth): #not current_depth:
+            if next_path.jumpkind == 'Ijk_Call' and not self._vex_fucked_up(
+                    current_path, next_path):
+                if not self._follow_call(current_path, next_path,
+                                         current_depth):  # not current_depth:
                     # if there is not fake ret we create one
                     if not any(s.jumpkind == "Ijk_FakeRet" for s in succ):
                         state = next_path.state
                         ret_addr = state.regs.lr if self._p.arch.bits == 32 else state.regs.x30
                         ret_func = current_path.state.regs.lr if self._p.arch.bits == 32 else current_path.state.regs.x30
-                        next_path = self._set_fake_ret_succ(current_path, state, ret_addr, ret_func)
+                        next_path = self._set_fake_ret_succ(current_path, state,
+                                                            ret_addr, ret_func)
                     else:
                         # the fake ret is already present, therefore we just skip
                         # the call
                         continue
                 else:
-                    l.info("Following function call to %s" % hex(next_path.addr))
+                    l.info(
+                        "Following function call to %s" % hex(next_path.addr))
                     next_depth = current_depth - 1
 
             if next_path.jumpkind == 'Ijk_Ret':
@@ -833,9 +874,10 @@ class _CoreTaint:
 
             # we have a back jump
             if next_path.jumpkind == 'Ijk_Boring' and next_path.addr <= current_path.addr and \
-                    not self._follow_back_jump(current_path, next_path, guards_info):
-                    l.info("breaking loop")
-                    continue
+                    not self._follow_back_jump(current_path, next_path,
+                                               guards_info):
+                l.info("breaking loop")
+                continue
 
             # the successor leads out of the function, we do not want to follow it
             if next_path.addr == self._bogus_return:
@@ -846,13 +888,15 @@ class _CoreTaint:
             new_guards_info = list(guards_info)
             current_guards = [g for g in next_path.guards]
             if current_guards and len(new_guards_info) < len(current_guards):
-                new_guards_info.append([hex(current_path.addr), current_guards[-1]])
+                new_guards_info.append(
+                    [hex(current_path.addr), current_guards[-1]])
 
             # next step!
-            self._flat_explore(next_path, check_path_fun, new_guards_info, next_depth, **kwargs)
+            self._flat_explore(next_path, check_path_fun, new_guards_info,
+                               next_depth, **kwargs)
             l.info("Back to block %s", hex(current_path.addr))
         l.info("Backtracking")
-        
+
     def set_project(self, p):
         """
         Set the project
@@ -868,15 +912,17 @@ class _CoreTaint:
         """
         self._keep_run = False
 
-    def flat_explore(self, state, check_path_fun, guards_info, force_thumb=False, **kwargs):
+    def flat_explore(self, state, check_path_fun, guards_info,
+                     force_thumb=False, **kwargs):
         self._keep_run = True
         initial_path = self._p.factory.path(state)
         current_depth = self._interfunction_level
 
         if force_thumb:
-            #set thumb mode
+            # set thumb mode
             initial_path = initial_path.step(thumb=True)[0]
-        self._flat_explore(initial_path, check_path_fun, guards_info, current_depth, **kwargs)
+        self._flat_explore(initial_path, check_path_fun, guards_info,
+                           current_depth, **kwargs)
 
     def start_logging(self):
         if not self._default_log:
@@ -885,7 +931,7 @@ class _CoreTaint:
         self._fp.write("Log Start \n"
                        "Bootloader: " +
                        self._p.filename + '\n'
-                       "=================================\n\n")
+                                          "=================================\n\n")
 
     def log(self, msg):
         self._fp.write(msg)
@@ -914,7 +960,8 @@ class _CoreTaint:
         signal.signal(signal.SIGALRM, self.handler)
         signal.alarm(timer)
 
-    def run(self, state, sinks_info, sources_info, summarized_f={}, init_bss=True,
+    def run(self, state, sinks_info, sources_info, summarized_f={},
+            init_bss=True,
             check_func=None, force_thumb=False, use_smart_concretization=True):
 
         if use_smart_concretization:
@@ -945,11 +992,9 @@ class _CoreTaint:
             l.info("init .bss")
             self._init_bss(state)
 
-
         try:
-            self.flat_explore(state,  check_func, [], force_thumb=force_thumb, sinks_info=sinks_info, sources_info=sources_info)
+            self.flat_explore(state, check_func, [], force_thumb=force_thumb,
+                              sinks_info=sinks_info, sources_info=sources_info)
         except TimeOutException as t:
             self.log("\nTimed out...\n")
             l.debug("Timeout triggered")
-
-
