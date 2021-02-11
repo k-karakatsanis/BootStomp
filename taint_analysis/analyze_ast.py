@@ -155,16 +155,16 @@ class GuardAnalyze:
 
     def forward_trace_to_argument_register(self, log_message_xref_addr):
         cur_addr = log_message_xref_addr
-        dest_reg = GetOpnd(cur_addr, 0)
+        dest_reg = print_operand(cur_addr, 0)
         if self.is_argument_register(dest_reg):
             return cur_addr
         else:
             last_reg = dest_reg
         for instr_cnt in xrange(10):
-            cur_addr = NextHead(cur_addr)
+            cur_addr = next_head(cur_addr, BADADDR)
             if 'MOV' in GetDisasm(cur_addr):
-                src_reg = GetOpnd(cur_addr, 1)
-                dest_reg = GetOpnd(cur_addr, 0)
+                src_reg = print_operand(cur_addr, 1)
+                dest_reg = print_operand(cur_addr, 0)
                 if src_reg == last_reg:
                     if self.is_argument_register(dest_reg):
                         return cur_addr

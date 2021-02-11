@@ -26,7 +26,7 @@ def find_instr(instr, seg_start = SegStart(ea), seg_end = SegEnd(ea)):
 
     # Iterate over the address space ocupied by the image
     while addr <= seg_end:
-        instr_address = FindText(addr, SEARCH_DOWN, 0, 0, instr)
+        instr_address = find_text(addr, SEARCH_DOWN, 0, 0, instr)
         instr_addresses.append(instr_address)
         instr_belogs_to_func = get_func(instr_address)
 

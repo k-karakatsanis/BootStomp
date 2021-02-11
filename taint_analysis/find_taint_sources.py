@@ -53,12 +53,12 @@ class GetTaintSource:
 
             while str_ref_idx < (str_ref_cnt - 1):
                 cur_caller = all_callers[str_ref_idx]
-                cur_caller_opcode = GetMnem(cur_caller.call_site)
-                cur_caller_opnd1 = GetOpnd(cur_caller.call_site, 0)
+                cur_caller_opcode = print_insn_mnem(cur_caller.call_site)
+                cur_caller_opnd1 = print_operand(cur_caller.call_site, 0)
                 nxt_caller = all_callers[str_ref_idx + 1]
-                nxt_caller_opcode = GetMnem(nxt_caller.call_site)
-                nxt_caller_opnd1 = GetOpnd(nxt_caller.call_site, 0)
-                nxt_caller_opnd2 = GetOpnd(nxt_caller.call_site, 1)
+                nxt_caller_opcode = print_insn_mnem(nxt_caller.call_site)
+                nxt_caller_opnd1 = print_operand(nxt_caller.call_site, 0)
+                nxt_caller_opnd2 = print_operand(nxt_caller.call_site, 1)
 
                 if cur_caller_opcode == "ADRP" and nxt_caller_opcode == "ADD" and cur_caller_opnd1 == nxt_caller_opnd1 and nxt_caller_opnd1 == nxt_caller_opnd2:
                     filtered_callers.append(nxt_caller)
@@ -74,7 +74,7 @@ class GetTaintSource:
 
     def render_taint_source(self):
         if self.source_or_sink == 0:
-            data = "base_addr:\n0x%X\n\n" % SegStart(MinEA())
+            data = "base_addr:\n0x%X\n\n" % get_segm_start(inf_get_min_ea())
             data += "# method_name, method_addr, caller_name, caller_addr, taint_addr, taint_bb_addr, arg_cnt, non_string_args_list, log_message_xref_addr, log_message_addr\n\n"
             data += "sources:\n"
 
@@ -127,7 +127,7 @@ class GetTaintSource:
             taint_source.method_name = method_name
             taint_source.method_addr = method_addr
             taint_source.caller_name = get_func_name(taint_addr)
-            taint_source.caller_addr = get_func(taint_addr).startEA
+            taint_source.caller_addr = get_func(taint_addr).start_ea
             taint_source.taint_addr = taint_addr
             taint_source.taint_bb_addr = helper.get_basic_block(taint_addr)
             taint_source.arg_cnt = guard_analyze.get_function_args_count(method_addr)
@@ -214,7 +214,7 @@ class GetTaintSource:
 
                     # Check if the instruction lies in a function recognized by IDA
                     if str_ref_by_func is not None:
-                        function_info.address = str_ref_by_func.startEA                       # Get the starting address of the function
+                        function_info.address = str_ref_by_func.start_ea                       # Get the starting address of the function
                         function_info.name = get_func_name(function_info.address)             # Get the mnemonic function named by IDA
                     else:
                         function_info.name = "instr_" + str(hex(function_info.call_site))	  # Name the function in the form of "instr_<address>""

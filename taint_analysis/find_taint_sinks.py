@@ -101,11 +101,11 @@ class GetTaintSink:
         registers = ["LR"]
         memcpy_pattern = [load_mnemonics, store_mnemonics]
         opcode_type = 0
-        instr_addr = basic_block.startEA
-        bb_start = GetTrueName(basic_block.startEA)
+        instr_addr = basic_block.start_ea
+        bb_start = get_ea_name(basic_block.start_ea)
 
-        while instr_addr < basic_block.endEA:
-            mnemonics = GetMnem(instr_addr)
+        while instr_addr < basic_block.end_ea:
+            mnemonics = print_insn_mnem(instr_addr)
             bb_size += 1
 
             if opcode_type < 2:
@@ -113,10 +113,10 @@ class GetTaintSink:
                     opcode_type += 1
 
             if mnemonics in branch_mnemonics:
-                branch_tgt = GetOpnd(instr_addr, 0)
-                branch_tgt_addr = GetOperandValue(instr_addr, 0)
+                branch_tgt = print_operand(instr_addr, 0)
+                branch_tgt_addr = get_operand_value(instr_addr, 0)
                 if branch_tgt in registers:
-                    instr_addr = NextHead(instr_addr)
+                    instr_addr = next_head(instr_addr)
                     continue
 
                 # Intra-procedural jump
@@ -135,14 +135,14 @@ class GetTaintSink:
                     if branch_tgt_addr not in external_calls:
                         external_calls.add(branch_tgt_addr)
 
-            instr_addr = NextHead(instr_addr)
+            instr_addr = next_head(instr_addr, BADADDR)
 
         if is_bb_memcpy:
             if bb_size > self.max_bb_size:
-                print "      |-- BB size(%d) exceeds the threshold(%d), discarding suspicious block at 0x%X" % (bb_size, self.max_bb_size, basic_block.startEA)
+                print "      |-- BB size(%d) exceeds the threshold(%d), discarding suspicious block at 0x%X" % (bb_size, self.max_bb_size, basic_block.start_ea)
                 is_bb_memcpy = False
             else:
-                print "      |-- Signature found in basic_block at 0x%X" % basic_block.startEA
+                print "      |-- Signature found in basic_block at 0x%X" % basic_block.start_ea
 
         return is_bb_memcpy
 
@@ -161,16 +161,16 @@ class GetTaintSink:
         external_calls = set()
 
         for block in flow_chart:
-            is_bb_memcpy = self.is_memcpy_block(block, external_calls, function.startEA, function.endEA, interfunction_level)
+            is_bb_memcpy = self.is_memcpy_block(block, external_calls, function.start_ea, function.end_ea, interfunction_level)
             is_func_memcpy = is_func_memcpy or is_bb_memcpy
 
         if is_func_memcpy:
             call_count_from_function = len(external_calls)
 
             if call_count_from_function > self.max_call_count:
-                print "      |-- Distinct call count(%d) exceeds the threshold(%d), discarding suspicious function at 0x%X" % (call_count_from_function, self.max_call_count, function.startEA)
+                print "      |-- Distinct call count(%d) exceeds the threshold(%d), discarding suspicious function at 0x%X" % (call_count_from_function, self.max_call_count, function.start_ea)
             else:
-                print "      |-- Signature found in function at 0x%X" % function.startEA
+                print "      |-- Signature found in function at 0x%X" % function.start_ea
                 return True
 
         return False
