@@ -1,10 +1,13 @@
-from idc import *
+from math import ceil
+
 from idaapi import *
 from idautils import *
-from math import ceil
-from sys import exit
-import traverse_ast
+from idc import *
+
 import helper
+import traverse_ast
+
+import codecs
 
 
 class GuardAnalyze:
@@ -164,7 +167,7 @@ class GuardAnalyze:
         else:
             last_reg = dest_reg
         for instr_cnt in range(10):
-            cur_addr = next_head(cur_addr, BADADDR)
+            cur_addr = next_head(cur_addr)
             if 'MOV' in GetDisasm(cur_addr):
                 src_reg = print_operand(cur_addr, 1)
                 dest_reg = print_operand(cur_addr, 0)
@@ -176,7 +179,8 @@ class GuardAnalyze:
 
     def to_bytes(self, n, length, endianess='little'):
         h = '%x' % n
-        s = ('0' * (len(h) % 2) + h).zfill(length * 2).decode('hex')
+        temp_s = ('0' * (len(h) % 2) + h).zfill(length * 2)
+        s = codecs.decode(temp_s, 'hex').decode('ascii')
         return s if endianess == 'big' else s[::-1]
 
     def get_function_args_count(self, func_addr):
@@ -203,7 +207,7 @@ class GuardAnalyze:
                 ast_visitor = traverse_ast.AstVisitor(None)
                 self.ast_pass = 3
                 print(
-                    "[INFO]: Following call at 0x%X to identify string arguments" % xref_addr)
+                        "[INFO]: Following call at 0x%X to identify string arguments" % xref_addr)
                 ast_visitor.walk_ast(function_ctree.body, self.ast_pass,
                                      xref_addr, cot_call)
 
@@ -237,8 +241,8 @@ class GuardAnalyze:
         self.log_message_xref_addr = log_message_xref_addr
         self.log_message_addr = log_message_addr
         print(
-            "\n" + "=" * 100 + "\n[INFO]: Analyzing method at 0x%X referencing string 0x%X at 0x%X\n" % (
-                func_addr, log_message_addr, log_message_xref_addr))
+                "\n" + "=" * 100 + "\n[INFO]: Analyzing method at 0x%X referencing string 0x%X at 0x%X\n" % (
+            func_addr, log_message_addr, log_message_xref_addr))
         self.taint_source_per_instance = []
         function = get_func(func_addr)
         if function is None:

@@ -1,6 +1,7 @@
-from idc import *
 from idaapi import *
 from idautils import *
+from idc import *
+
 import helper
 
 
@@ -141,7 +142,7 @@ class GetTaintSink:
                 branch_tgt = print_operand(instr_addr, 0)
                 branch_tgt_addr = get_operand_value(instr_addr, 0)
                 if branch_tgt in registers:
-                    instr_addr = next_head(instr_addr, BADADDR)
+                    instr_addr = next_head(instr_addr)
                     continue
 
                 # Intra-procedural jump
@@ -161,17 +162,17 @@ class GetTaintSink:
                     if branch_tgt_addr not in external_calls:
                         external_calls.add(branch_tgt_addr)
 
-            instr_addr = next_head(instr_addr, BADADDR)
+            instr_addr = next_head(instr_addr)
 
         if is_bb_memcpy:
             if bb_size > self.max_bb_size:
                 print(
-                    "      |-- BB size(%d) exceeds the threshold(%d), discarding suspicious block at 0x%X" % (
-                        bb_size, self.max_bb_size, basic_block.start_ea))
+                        "      |-- BB size(%d) exceeds the threshold(%d), discarding suspicious block at 0x%X" % (
+                    bb_size, self.max_bb_size, basic_block.start_ea))
                 is_bb_memcpy = False
             else:
                 print(
-                    "      |-- Signature found in basic_block at 0x%X" % basic_block.start_ea)
+                        "      |-- Signature found in basic_block at 0x%X" % basic_block.start_ea)
 
         return is_bb_memcpy
 
@@ -200,12 +201,12 @@ class GetTaintSink:
 
             if call_count_from_function > self.max_call_count:
                 print(
-                    "      |-- Distinct call count(%d) exceeds the threshold(%d), discarding suspicious function at 0x%X" % (
-                        call_count_from_function, self.max_call_count,
-                        my_function.start_ea))
+                        "      |-- Distinct call count(%d) exceeds the threshold(%d), discarding suspicious function at 0x%X" % (
+                    call_count_from_function, self.max_call_count,
+                    my_function.start_ea))
             else:
                 print(
-                    "      |-- Signature found in function at 0x%X" % my_function.start_ea)
+                        "      |-- Signature found in function at 0x%X" % my_function.start_ea)
                 return True
 
         return False
@@ -217,9 +218,9 @@ class GetTaintSink:
         for function_info in self.memcpy_like_functions:
             function_start_addr = function_info.address
             print(
-                '[INFO]: Looking for memcpy signture inside function %s[0x%X](%d) => %d' % (
-                    function_info.name, function_info.address,
-                    function_info.arg_cnt, function_info.xrefs))
+                    '[INFO]: Looking for memcpy signture inside function %s[0x%X](%d) => %d' % (
+                function_info.name, function_info.address,
+                function_info.arg_cnt, function_info.xrefs))
             if self.is_memcpy_function(function_start_addr):
                 self.taint_sinks.append(function_info)
 
