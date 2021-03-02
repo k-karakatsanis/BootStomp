@@ -1,6 +1,10 @@
-from idc import *
-from idaapi import *
+from ida_funcs import *
+from ida_gdl import *
+from ida_name import *
+from ida_ua import *
 from idautils import *
+from idc import *
+
 import helper
 
 
@@ -135,7 +139,7 @@ class GetTaintSink:
                     if branch_tgt_addr not in external_calls:
                         external_calls.add(branch_tgt_addr)
 
-            instr_addr = next_head(instr_addr, BADADDR)
+            instr_addr = next_head(instr_addr)
 
         if is_bb_memcpy:
             if bb_size > self.max_bb_size:

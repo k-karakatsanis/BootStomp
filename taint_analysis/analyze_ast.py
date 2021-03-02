@@ -1,10 +1,14 @@
-from idc import *
-from idaapi import *
-from idautils import *
 from math import ceil
-from sys import exit
-import traverse_ast
+
+from ida_funcs import *
+from ida_hexrays import *
+from ida_idaapi import *
+from ida_ua import *
+from idautils import *
+from idc import *
+
 import helper
+import traverse_ast
 
 
 class GuardAnalyze:
@@ -161,7 +165,7 @@ class GuardAnalyze:
         else:
             last_reg = dest_reg
         for instr_cnt in xrange(10):
-            cur_addr = next_head(cur_addr, BADADDR)
+            cur_addr = next_head(cur_addr)
             if 'MOV' in GetDisasm(cur_addr):
                 src_reg = print_operand(cur_addr, 1)
                 dest_reg = print_operand(cur_addr, 0)
