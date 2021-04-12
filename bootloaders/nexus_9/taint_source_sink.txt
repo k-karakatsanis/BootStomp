@@ -1,0 +1,14 @@
+base_addr:
+0x0
+
+# method_name, method_addr, caller_name, caller_addr, taint_addr, taint_bb_addr, arg_cnt, non_string_args_list, log_message_xref_addr, log_message_addr
+
+sources:
+
+# method_name, method_addr, arg_cnt, non_string_args_list
+
+sinks_memwrite:
+
+# method_name, method_addr, arg_cnt, non_string_args_list
+
+sinks_memcpy:
