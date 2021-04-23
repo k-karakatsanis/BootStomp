@@ -1,0 +1,9 @@
+[+] MAGIC:0x58881688
+[+] IMAGE BASE:0x0
+[+] IMAGE SIZE:0x0
+[+] IMAGE BASE + CODE SIZE:0x0
+
+[+] OUTPUT HEADER STRIPPED IMAGE:output/aboot_header_stripped
+
+[+] CODE SECTION OF BOOT IMAGE IS AT:output/aboot_code.img
+[$] TRY TO LOAD THE FILE:output/aboot_code.img IN IDA WITH LOADING ADDRESS:0x0
